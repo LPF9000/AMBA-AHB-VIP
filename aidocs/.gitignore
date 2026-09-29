@@ -1,0 +1,3 @@
+# Keep this folder available; its contents stay local.
+*
+!.gitignore

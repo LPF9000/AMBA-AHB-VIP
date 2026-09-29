@@ -1,0 +1,51 @@
+{
+    "schema_version": 1,
+    "suite_name": "amba_ahb_lite_vip",
+    "target": {
+        "implementation": "systemverilog_uvm",
+        "boundary": "ahb_lite_vip"
+    },
+    "primary_metric": {
+        "name": "protocol_regressions_passed",
+        "formula": "passed / total"
+    },
+    "required_metrics": [
+        "rtl_compile_status",
+        "uvm_smoke_status"
+    ],
+    "architecture_variants": [
+        {
+            "id": "baseline",
+            "notes": {}
+        }
+    ],
+    "candidates": [
+        {
+            "id": "sv_uvm_baseline",
+            "status": "implemented",
+            "source_dir": ".",
+            "role": "verification_ip",
+            "source_type": "AHB_LITE_VIP",
+            "rtl_module": "amba_ahb_lite_uvm_smoke",
+            "stage1_test": "amba_ahb_lite_topology_test",
+            "research_basis": [
+                "AMBA 3 AHB-Lite IHI0033C",
+                "Accellera UVM"
+            ],
+            "risk_notes": [],
+            "hardening": {
+                "status": "preliminary",
+                "evidence_grade": "uvm_top_compile_and_interface_smoke",
+                "rtl_reconciliation": "not_applicable",
+                "next_gate": "active UVM directed tests"
+            },
+            "architecture_variant": "baseline"
+        }
+    ],
+    "source_references": [
+        {
+            "name": "AMBA AHB Protocol Specification",
+            "url": "https://developer.arm.com/documentation/ihi0033/c/"
+        }
+    ]
+}

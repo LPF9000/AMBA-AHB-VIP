@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+dvflow_root=${DVFLOW_ROOT:-"$repo_root/../TRNG-research"}
+dvflow_project=${DVFLOW_PROJECT_ROOT:-"$repo_root"}
+export DVFLOW_ROOT="$dvflow_root"
+export DVFLOW_PROJECT_ROOT="$dvflow_project"
+# Keep generated Verilator/C++ artifacts under this consuming project.  The
+# workstation's default ccache may be read-only in managed environments.
+export CCACHE_DISABLE="${CCACHE_DISABLE:-1}"
+mkdir -p "$dvflow_project/sim"
+
+if [ "${1:-}" = "sim" ]; then
+    verilator_bin=${DVFLOW_VERILATOR_BIN:-}
+    if [ -z "$verilator_bin" ]; then
+        verilator_bin=$(command -v verilator || true)
+    fi
+    if [ -z "$verilator_bin" ]; then
+        echo "error: AHB UVM simulation requires Verilator >= 5.052; no verilator found" >&2
+        exit 2
+    fi
+    verilator_version=$($verilator_bin --version | sed -n 's/.*Verilator \([0-9][0-9.]*\).*/\1/p')
+    if [ -z "$verilator_version" ] || [ "$(printf '%s\n' 5.052 "$verilator_version" | sort -V | head -n 1)" != "5.052" ]; then
+        echo "error: AHB UVM simulation requires Verilator >= 5.052; found $verilator_version ($verilator_bin)" >&2
+        echo "hint: install/update the local OSS CAD Suite or set DVFLOW_VERILATOR_BIN" >&2
+        exit 2
+    fi
+fi
+
+if command -v uv >/dev/null 2>&1; then
+    exec uv run --project "$dvflow_root/tools/dv" --locked dvflow "$@"
+fi
+if [ -x "$dvflow_root/tools/dv/.venv/bin/dvflow" ]; then
+    exec "$dvflow_root/tools/dv/.venv/bin/dvflow" "$@"
+fi
+echo "error: local DVFlow checkout not found; set DVFLOW_ROOT or install uv" >&2
+exit 127

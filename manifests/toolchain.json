@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "default_install_root": ".toolchain",
+  "profiles": {"digital-eda": ["verilator"], "python": ["uv"]},
+  "tools": {
+    "verilator": {"display_name": "Verilator", "commands": ["verilator"], "version_args": ["--version"], "minimum_version": "5.052", "pinned_ref": "5.052-or-newer-for-UVM-2020-3.2"},
+    "uv": {"display_name": "uv", "commands": ["uv"], "version_args": ["--version"]}
+  }
+}

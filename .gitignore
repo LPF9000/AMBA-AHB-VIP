@@ -1,0 +1,19 @@
+# Local agent instructions and AI tooling
+AGENTS.md
+agents.md
+**/AGENTS.md
+**/agents.md
+.agents/
+.codex/
+.claude/
+.cursor/
+.github/copilot-instructions.md
+.github/instructions/
+
+# Local builds, tools, and Python caches
+.toolchain/
+sim/
+.venv/
+__pycache__/
+*.py[cod]
+*.log

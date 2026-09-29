@@ -1,0 +1,33 @@
+{
+    "schema_version": 1,
+    "project_id": "amba-ahb-vip",
+    "adapter": {
+        "module": "tools.amba_ahb_dvflow_adapter",
+        "class": "DvFlowProjectAdapter"
+    },
+    "paths": {
+        "rtl_filelist": "amba_ahb_lite.f",
+        "dv_filelist": "amba_ahb_lite_uvm.f",
+        "benchmark_manifest": "manifests/benchmarks.json",
+        "technology_manifest": "manifests/technologies.json",
+        "toolchain_manifest": "manifests/toolchain.json",
+        "benchmark_result_dir": "sim/benchmarks",
+        "benchmark_run_dir": "sim/benchmarks/runs",
+        "synth_run_dir": "sim/synth/runs",
+        "sim_dir": "sim",
+        "uvm_root": "$DVFLOW_ROOT/third_party/uvm-core",
+        "source_roots": [
+            "src",
+            "tb"
+        ],
+        "dv_include_dirs": [
+            "src",
+            "tb"
+        ]
+    },
+    "defaults": {
+        "dv_top": "amba_ahb_lite_uvm_smoke",
+        "default_uvm_test": "amba_ahb_lite_topology_test",
+        "interface_top": "amba_ahb_lite_if"
+    }
+}
