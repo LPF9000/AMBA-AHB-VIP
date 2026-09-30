@@ -31,12 +31,18 @@ class amba_ahb_lite_scoreboard extends uvm_component;
     endfunction
 
     function void write_actual(amba_ahb_lite_observed_item item);
-        actual_q.push_back(item);
+        amba_ahb_lite_observed_item snapshot;
+        snapshot = amba_ahb_lite_observed_item::type_id::create("actual_snapshot");
+        snapshot.copy(item);
+        actual_q.push_back(snapshot);
         compare_available();
     endfunction
 
     function void write_expected(amba_ahb_lite_observed_item item);
-        expected_q.push_back(item);
+        amba_ahb_lite_observed_item snapshot;
+        snapshot = amba_ahb_lite_observed_item::type_id::create("expected_snapshot");
+        snapshot.copy(item);
+        expected_q.push_back(snapshot);
         compare_available();
     endfunction
 
@@ -58,8 +64,6 @@ class amba_ahb_lite_scoreboard extends uvm_component;
                     (actual.reset_abort !== expected.reset_abort) ||
                     (actual.timed_out !== expected.timed_out) ||
                     (actual.protocol_reject !== expected.protocol_reject) ||
-                    (actual.error_wait_seen !== expected.error_wait_seen) ||
-                    (actual.error_complete_seen !== expected.error_complete_seen) ||
                     ((expected.wait_cycles != 0) &&
                       (actual.wait_cycles !== expected.wait_cycles))) begin
                 mismatches++;
@@ -72,7 +76,7 @@ class amba_ahb_lite_scoreboard extends uvm_component;
     endfunction
 
     function void write_scoreboard_reset(amba_ahb_lite_reset_event event_item);
-        if ((cfg == null) || cfg.flush_on_reset) begin
+        begin // Lifecycle queues always flush; memory retention is separate.
             reset_dropped_actual += actual_q.size();
             reset_dropped_expected += expected_q.size();
             actual_q.delete();

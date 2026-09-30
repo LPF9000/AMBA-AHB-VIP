@@ -1,19 +1,10 @@
 class amba_ahb_lite_observed_item extends amba_ahb_lite_item;
     int unsigned reset_generation;
-    bit address_accepted;
     bit data_completed;
-    bit error_wait_seen;
-    bit error_complete_seen;
     time address_time;
     time completion_time;
 
-    `uvm_object_utils_begin(amba_ahb_lite_observed_item)
-        `uvm_field_int(reset_generation, UVM_ALL_ON)
-        `uvm_field_int(address_accepted, UVM_ALL_ON)
-        `uvm_field_int(data_completed, UVM_ALL_ON)
-        `uvm_field_int(error_wait_seen, UVM_ALL_ON)
-        `uvm_field_int(error_complete_seen, UVM_ALL_ON)
-    `uvm_object_utils_end
+    `uvm_object_utils(amba_ahb_lite_observed_item)
 
     function new(string name = "amba_ahb_lite_observed_item");
         super.new(name);

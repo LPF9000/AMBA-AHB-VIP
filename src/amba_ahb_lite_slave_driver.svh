@@ -1,207 +1,153 @@
 class amba_ahb_lite_slave_driver extends uvm_driver #(amba_ahb_lite_item);
     `uvm_component_utils(amba_ahb_lite_slave_driver)
-
     amba_ahb_lite_agent_config cfg;
     virtual amba_ahb_lite_if vif;
+    protected amba_ahb_lite_item pending;
+    protected amba_ahb_lite_item scripted;
+    protected int unsigned waits_left;
+    protected int unsigned observed_waits;
+    protected int unsigned error_phase;
+    protected logic [31:0] response_data;
+    protected ahb_hresp_e response_kind;
+    protected bit in_reset;
 
     function new(string name = "amba_ahb_lite_slave_driver", uvm_component parent = null);
         super.new(name, parent);
     endfunction
 
-    task automatic finish_with_response(amba_ahb_lite_item request);
-        amba_ahb_lite_item response;
-        response = amba_ahb_lite_item::type_id::create("response");
-        response.copy(request);
-        response.set_id_info(request);
-        seq_item_port.item_done(response);
-    endtask
-
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
         if (!uvm_config_db#(amba_ahb_lite_agent_config)::get(this, "", "cfg", cfg))
-            `uvm_fatal("AHB_CFG", "Slave driver requires amba_ahb_lite_agent_config")
+            `uvm_fatal("AHB_CFG", "Slave driver requires typed configuration")
         vif = cfg.vif;
-        if (vif == null)
-            `uvm_fatal("AHB_VIF", "Slave driver received a null virtual interface")
-        if (!cfg.validate())
-            `uvm_fatal("AHB_CFG", "Invalid AMBA AHB-Lite slave configuration")
+        if (vif == null || !cfg.validate())
+            `uvm_fatal("AHB_CFG", "Slave driver requires a valid configuration and interface")
     endfunction
 
-    task run_phase(uvm_phase phase);
-        amba_ahb_lite_item rsp;
-        amba_ahb_lite_item request;
-        int unsigned delay;
-        int unsigned wait_count;
-        bit accept_timed_out;
-        bit response_timed_out;
-        bit [31:0] model_rdata;
-        ahb_hresp_e model_resp;
-        int unsigned requested_delay;
-        if (cfg.ready_on_reset) begin
-            vif.slave_drive_cb.HREADYOUT <= 1'b1;
-            vif.slave_drive_cb.HRESP     <= AHB_OKAY;
-            vif.slave_drive_cb.HRDATA    <= '0;
+    function void finish_script(bit reset_abort, bit timed_out);
+        if (scripted != null) begin
+            scripted.completed = !reset_abort && !timed_out;
+            scripted.reset_abort = reset_abort;
+            scripted.timed_out = timed_out;
+            scripted.wait_cycles = observed_waits;
+            scripted.rdata = response_data;
+            scripted.resp = response_kind;
+            seq_item_port.item_done();
+            scripted = null;
         end
+    endfunction
+
+    task observe_reset();
         forever begin
-            seq_item_port.get_next_item(rsp);
-            wait_count = 0;
-            accept_timed_out = 1'b0;
-            // The address phase is sampled at posedge. BUSY/IDLE are not transfers.
-            forever begin
-                @(vif.monitor_cb);
-                if (!vif.monitor_cb.HRESETn)
-                    break;
-                if (!vif.monitor_cb.HREADY) begin
-                    wait_count++;
-                    if ((cfg.max_wait_cycles != 0) &&
-                            (wait_count >= cfg.max_wait_cycles)) begin
-                        accept_timed_out = 1'b1;
-                        break;
-                    end
-                end
-                if (vif.monitor_cb.HREADY && vif.monitor_cb.HSEL &&
-                        !(vif.monitor_cb.HTRANS inside {AHB_IDLE, AHB_BUSY}))
-                    break;
-            end
-            if (!vif.monitor_cb.HRESETn) begin
-                rsp.reset_abort = 1'b1;
-                vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA <= '0;
-                finish_with_response(rsp);
-                continue;
-            end
-            if (accept_timed_out) begin
-                rsp.timed_out = 1'b1;
-                rsp.wait_cycles = wait_count;
-                vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA <= '0;
-                finish_with_response(rsp);
-                continue;
-            end
-            request = amba_ahb_lite_item::type_id::create("request");
-            request.addr     = vif.monitor_cb.HADDR;
-            request.write    = vif.monitor_cb.HWRITE;
-            request.trans    = ahb_htrans_e'(vif.monitor_cb.HTRANS);
-            request.size     = ahb_hsize_e'(vif.monitor_cb.HSIZE);
-            request.burst    = ahb_hburst_e'(vif.monitor_cb.HBURST);
-            request.prot     = vif.monitor_cb.HPROT;
-            request.mastlock = vif.monitor_cb.HMASTLOCK;
-            request.wdata    = vif.monitor_cb.HWDATA;
-            requested_delay = rsp.wait_cycles;
-            // AHB write data belongs to the data phase, not the accepted
-            // address phase. Hold the response until that phase is sampled so
-            // a responder model cannot inspect stale address-phase data.
-            if (request.write) begin
-                @(vif.slave_drive_cb);
-                vif.slave_drive_cb.HREADYOUT <= 1'b0;
-                vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA <= '0;
-                @(vif.monitor_cb);
-                if (!vif.monitor_cb.HRESETn) begin
-                    rsp.reset_abort = 1'b1;
-                    vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                    vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                    vif.slave_drive_cb.HRDATA <= '0;
-                    finish_with_response(rsp);
-                    continue;
-                end
-                request.wdata = vif.monitor_cb.HWDATA;
-                rsp.wait_cycles = requested_delay + 1;
-                if ((cfg.max_wait_cycles != 0) &&
-                        (rsp.wait_cycles >= cfg.max_wait_cycles)) begin
-                    rsp.timed_out = 1'b1;
-                    vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                    vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                    vif.slave_drive_cb.HRDATA <= '0;
-                    finish_with_response(rsp);
-                    continue;
-                end
-            end
-            if (cfg.responder_model != null) begin
-                cfg.responder_model.get_response(request, model_rdata, model_resp);
-                rsp.rdata = model_rdata;
-                rsp.resp = model_resp;
-            end else if ((cfg.response_policy != null) && (rsp.resp == AHB_OKAY)) begin
-                // A shared policy prevents the independent predictor and scripted
-                // responder from disagreeing about deterministic request failures.
-                rsp.resp = cfg.response_policy.predict_response(request);
-            end
-            delay = requested_delay;
-            if (delay == 0)
-                delay = cfg.default_wait_cycles;
-            repeat (delay) begin
-                @(vif.slave_drive_cb);
-                vif.slave_drive_cb.HREADYOUT <= 1'b0;
-                vif.slave_drive_cb.HRESP     <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA    <= '0;
-            end
-            // AHB-Lite ERROR is a two-cycle response: an ERROR cycle with ready
-            // low, followed by the completing ERROR cycle with ready high.
-            if (rsp.resp == AHB_ERROR) begin
-                @(vif.slave_drive_cb);
-                vif.slave_drive_cb.HREADYOUT <= 1'b0;
-                vif.slave_drive_cb.HRESP     <= AHB_ERROR;
-                vif.slave_drive_cb.HRDATA    <= rsp.rdata;
-                @(vif.monitor_cb);
-                if (!vif.monitor_cb.HRESETn) begin
-                    rsp.reset_abort = 1'b1;
-                    vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                    vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                    vif.slave_drive_cb.HRDATA <= '0;
-                    finish_with_response(rsp);
-                    continue;
-                end
-            end
-            @(vif.slave_drive_cb);
-            vif.slave_drive_cb.HREADYOUT <= 1'b1;
-            vif.slave_drive_cb.HRESP     <= rsp.resp;
-            vif.slave_drive_cb.HRDATA    <= rsp.rdata;
-            // HREADY is composed by the integration/interconnect. Do not use
-            // HREADYOUT as a substitute when another subordinate may be selected.
-            response_timed_out = 1'b0;
-            wait_count = 0;
-            forever begin
-                @(vif.monitor_cb);
-                if (!vif.monitor_cb.HRESETn)
-                    break;
-                if (!vif.monitor_cb.HREADY) begin
-                    wait_count++;
-                    if ((cfg.max_wait_cycles != 0) &&
-                            (wait_count >= cfg.max_wait_cycles)) begin
-                        response_timed_out = 1'b1;
-                        break;
-                    end
-                end else begin
-                    break;
-                end
-            end
-            if (!vif.monitor_cb.HRESETn) begin
-                rsp.reset_abort = 1'b1;
-                vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA <= '0;
-                finish_with_response(rsp);
-                continue;
-            end
-            if (response_timed_out) begin
-                rsp.timed_out = 1'b1;
-                rsp.wait_cycles += wait_count;
-                vif.slave_drive_cb.HREADYOUT <= 1'b1;
-                vif.slave_drive_cb.HRESP <= AHB_OKAY;
-                vif.slave_drive_cb.HRDATA <= '0;
-                finish_with_response(rsp);
-                continue;
-            end
-            rsp.completed = 1'b1;
+            wait (vif.HRESETn === 1'b0);
+            in_reset = 1'b1;
+            pending = null;
+            finish_script(1'b1, 1'b0);
             if (cfg.responder_model != null)
-                cfg.responder_model.commit(request, rsp.resp);
-            finish_with_response(rsp);
-            @(vif.slave_drive_cb);
-            vif.slave_drive_cb.HREADYOUT <= 1'b1;
-            vif.slave_drive_cb.HRESP     <= AHB_OKAY;
-            vif.slave_drive_cb.HRDATA    <= '0;
+                cfg.responder_model.reset(cfg.flush_on_reset);
+            vif.slave_reset_ready();
+            @(posedge vif.HRESETn);
+            in_reset = 1'b0;
         end
+    endtask
+
+    task accept_address();
+        bit [31:0] model_data;
+        pending = amba_ahb_lite_item::type_id::create("pending");
+        pending.addr = vif.monitor_cb.HADDR;
+        pending.write = vif.monitor_cb.HWRITE;
+        pending.trans = ahb_htrans_e'(vif.monitor_cb.HTRANS);
+        pending.size = ahb_hsize_e'(vif.monitor_cb.HSIZE);
+        pending.burst = ahb_hburst_e'(vif.monitor_cb.HBURST);
+        pending.prot = vif.monitor_cb.HPROT;
+        pending.mastlock = vif.monitor_cb.HMASTLOCK;
+        pending.address_accepted = 1'b1;
+        // Lookup uses accepted address/control. Write payload is sampled only
+        // on data completion and passed to commit, never from the address phase.
+        scripted = null;
+        seq_item_port.try_next_item(scripted);
+        waits_left = scripted == null ? cfg.default_wait_cycles : scripted.wait_cycles;
+        observed_waits = 0;
+        error_phase = 0;
+        response_data = scripted == null ? '0 : scripted.rdata;
+        response_kind = scripted == null ? AHB_OKAY : scripted.resp;
+        if (cfg.responder_model != null) begin
+            ahb_hresp_e model_kind;
+            cfg.responder_model.get_response(pending, model_data, model_kind);
+            response_data = model_data;
+            if (scripted == null || response_kind == AHB_OKAY)
+                response_kind = model_kind;
+        end
+        if (cfg.response_policy != null && response_kind == AHB_OKAY)
+            response_kind = cfg.response_policy.predict_response(pending);
+    endtask
+
+    task serve();
+        logic [31:0] mask;
+        int unsigned bytes;
+        forever begin
+            @(vif.monitor_cb);
+            if (!vif.monitor_cb.HRESETn || in_reset || !vif.HRESETn)
+                continue;
+            if (pending != null) begin
+                if (vif.monitor_cb.HREADY) begin
+                    bytes = ahb_size_supported(pending.size, cfg.data_width) ?
+                        ahb_size_bytes(pending.size) : 0;
+                    mask = bytes == 4 ? 32'hffff_ffff : ((32'h1 << (bytes * 8)) - 1);
+                    pending.wdata = (vif.monitor_cb.HWDATA >>
+                        (int'(pending.addr[1:0]) * 8)) & mask;
+                    if (cfg.responder_model != null)
+                        cfg.responder_model.commit(pending, response_kind);
+                    finish_script(1'b0, 1'b0);
+                    pending = null;
+                end else begin
+                    observed_waits++;
+                    if ((cfg.max_wait_cycles != 0) &&
+                            (observed_waits >= cfg.max_wait_cycles)) begin
+                        finish_script(1'b0, 1'b1);
+                        pending = null;
+                    end
+                end
+            end
+            if (vif.monitor_cb.HREADY && vif.monitor_cb.HSEL &&
+                    (vif.monitor_cb.HTRANS inside {AHB_NONSEQ, AHB_SEQ}))
+                accept_address();
+            @(vif.slave_drive_cb);
+            if (in_reset || !vif.HRESETn || pending == null) begin
+                vif.slave_drive_cb.HREADYOUT <= 1'b1;
+                vif.slave_drive_cb.HRESP <= AHB_OKAY;
+                vif.slave_drive_cb.HRDATA <= '0;
+            end else if (!cfg.automatic_response && scripted == null) begin
+                seq_item_port.try_next_item(scripted);
+                if (scripted != null) begin
+                    waits_left = scripted.wait_cycles;
+                    response_data = scripted.rdata;
+                    response_kind = scripted.resp;
+                end
+                vif.slave_drive_cb.HREADYOUT <= 1'b0;
+                vif.slave_drive_cb.HRESP <= AHB_OKAY;
+            end else if (waits_left != 0) begin
+                waits_left--;
+                vif.slave_drive_cb.HREADYOUT <= 1'b0;
+                vif.slave_drive_cb.HRESP <= AHB_OKAY;
+                vif.slave_drive_cb.HRDATA <= '0;
+            end else if (response_kind == AHB_ERROR && error_phase == 0) begin
+                error_phase = 1;
+                vif.slave_drive_cb.HREADYOUT <= 1'b0;
+                vif.slave_drive_cb.HRESP <= AHB_ERROR;
+                vif.slave_drive_cb.HRDATA <= '0;
+            end else begin
+                vif.slave_drive_cb.HREADYOUT <= 1'b1;
+                vif.slave_drive_cb.HRESP <= response_kind;
+                vif.slave_drive_cb.HRDATA <= response_data << (int'(pending.addr[1:0]) * 8);
+            end
+        end
+    endtask
+
+    task run_phase(uvm_phase phase);
+        fork
+            observe_reset();
+            serve();
+        join
     endtask
 endclass

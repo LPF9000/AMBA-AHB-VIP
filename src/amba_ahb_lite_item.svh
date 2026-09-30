@@ -1,19 +1,20 @@
 class amba_ahb_lite_item extends uvm_sequence_item;
-    rand bit [31:0]       addr;
-    rand bit              write;
+    rand logic [31:0]       addr;
+    rand logic              write;
     rand ahb_htrans_e     trans;
     rand ahb_hsize_e      size;
     rand ahb_hburst_e     burst;
-    rand bit [3:0]        prot;
-    rand bit              mastlock;
-    rand bit [31:0]       wdata;
+    rand logic [3:0]        prot;
+    rand logic              mastlock;
+    rand logic [31:0]       wdata;
 
     // Response fields are filled by the master driver or monitor.  Slave
     // sequences use wait_cycles as a requested response delay and provide
     // rdata/resp as the pin-level response.
-    bit [31:0]             rdata;
+    logic [31:0]           rdata;
     ahb_hresp_e            resp;
     int unsigned           wait_cycles;
+    bit                    address_accepted;
     bit                    completed;
     bit                    reset_abort;
     bit                    timed_out;
@@ -24,33 +25,16 @@ class amba_ahb_lite_item extends uvm_sequence_item;
     int unsigned           burst_length;
     bit                    alignment_error;
 
+    // Data fields contain packed payload bytes, not shifted physical bus lanes.
     constraint legal_transfer_c {
         trans inside {AHB_NONSEQ, AHB_SEQ};
         size inside {AHB_BYTE, AHB_HWORD, AHB_WORD};
+        burst == AHB_SINGLE;
+        trans == AHB_NONSEQ;
+        (addr % (1 << int'(size))) == 0;
     }
 
-    `uvm_object_utils_begin(amba_ahb_lite_item)
-        `uvm_field_int(addr, UVM_ALL_ON)
-        `uvm_field_int(write, UVM_ALL_ON)
-        `uvm_field_enum(ahb_htrans_e, trans, UVM_ALL_ON)
-        `uvm_field_enum(ahb_hsize_e, size, UVM_ALL_ON)
-        `uvm_field_enum(ahb_hburst_e, burst, UVM_ALL_ON)
-        `uvm_field_int(prot, UVM_ALL_ON)
-        `uvm_field_int(mastlock, UVM_ALL_ON)
-        `uvm_field_int(wdata, UVM_ALL_ON)
-        `uvm_field_int(rdata, UVM_ALL_ON)
-        `uvm_field_enum(ahb_hresp_e, resp, UVM_ALL_ON)
-        `uvm_field_int(wait_cycles, UVM_ALL_ON)
-        `uvm_field_int(completed, UVM_ALL_ON)
-        `uvm_field_int(reset_abort, UVM_ALL_ON)
-        `uvm_field_int(timed_out, UVM_ALL_ON)
-        `uvm_field_int(protocol_reject, UVM_ALL_ON)
-        `uvm_field_int(error_wait_seen, UVM_ALL_ON)
-        `uvm_field_int(error_complete_seen, UVM_ALL_ON)
-        `uvm_field_int(burst_index, UVM_ALL_ON)
-        `uvm_field_int(burst_length, UVM_ALL_ON)
-        `uvm_field_int(alignment_error, UVM_ALL_ON)
-    `uvm_object_utils_end
+    `uvm_object_utils(amba_ahb_lite_item)
 
     function new(string name = "amba_ahb_lite_item");
         super.new(name);
@@ -66,11 +50,19 @@ class amba_ahb_lite_item extends uvm_sequence_item;
         if (!$cast(rhs_item, rhs))
             `uvm_fatal("AHB_COPY", "Attempted to copy a non-AHB item")
         super.do_copy(rhs);
-        addr = rhs_item.addr; write = rhs_item.write; trans = rhs_item.trans;
-        size = rhs_item.size; burst = rhs_item.burst; prot = rhs_item.prot;
-        mastlock = rhs_item.mastlock; wdata = rhs_item.wdata;
-        rdata = rhs_item.rdata; resp = rhs_item.resp;
-        wait_cycles = rhs_item.wait_cycles; completed = rhs_item.completed;
+        addr = rhs_item.addr;
+        write = rhs_item.write;
+        trans = rhs_item.trans;
+        size = rhs_item.size;
+        burst = rhs_item.burst;
+        prot = rhs_item.prot;
+        mastlock = rhs_item.mastlock;
+        wdata = rhs_item.wdata;
+        rdata = rhs_item.rdata;
+        resp = rhs_item.resp;
+        wait_cycles = rhs_item.wait_cycles;
+        completed = rhs_item.completed;
+        address_accepted = rhs_item.address_accepted;
         reset_abort = rhs_item.reset_abort;
         timed_out = rhs_item.timed_out;
         protocol_reject = rhs_item.protocol_reject;
@@ -79,6 +71,33 @@ class amba_ahb_lite_item extends uvm_sequence_item;
         burst_index = rhs_item.burst_index;
         burst_length = rhs_item.burst_length;
         alignment_error = rhs_item.alignment_error;
+    endfunction
+
+    virtual function bit do_compare(uvm_object rhs, uvm_comparer comparer);
+        amba_ahb_lite_item item;
+        if (!$cast(item, rhs))
+            return 1'b0;
+        return (addr === item.addr) &&
+            (write === item.write) &&
+            (trans === item.trans) &&
+            (size === item.size) &&
+            (burst === item.burst) &&
+            (prot === item.prot) &&
+            (mastlock === item.mastlock) &&
+            (wdata === item.wdata) &&
+            (rdata === item.rdata) &&
+            (resp === item.resp) &&
+            (wait_cycles === item.wait_cycles) &&
+            (completed === item.completed) &&
+            (address_accepted === item.address_accepted) &&
+            (reset_abort === item.reset_abort) &&
+            (timed_out === item.timed_out) &&
+            (protocol_reject === item.protocol_reject) &&
+            (error_wait_seen === item.error_wait_seen) &&
+            (error_complete_seen === item.error_complete_seen) &&
+            (burst_index === item.burst_index) &&
+            (burst_length === item.burst_length) &&
+            (alignment_error === item.alignment_error);
     endfunction
 
     function string convert2string();

@@ -10,11 +10,13 @@ class amba_ahb_lite_env extends uvm_env;
     // These are optional fanout points. Analysis ports, rather than mandatory
     // exports, allow a passive/topology-only environment to omit downstream
     // scoreboards without UVM connection-count errors.
+    uvm_analysis_port #(amba_ahb_lite_item) intent_export;
     uvm_analysis_port #(amba_ahb_lite_observed_item) observed_export;
     uvm_analysis_port #(amba_ahb_lite_reset_event) reset_export;
 
     function new(string name = "amba_ahb_lite_env", uvm_component parent = null);
         super.new(name, parent);
+        intent_export = new("intent_export", this);
         observed_export = new("observed_export", this);
         reset_export = new("reset_export", this);
     endfunction
@@ -31,13 +33,15 @@ class amba_ahb_lite_env extends uvm_env;
             stream_scoreboard = amba_ahb_lite_stream_scoreboard::type_id::create(
                 "stream_scoreboard", this);
         end
-        if (env_cfg.enable_predictor &&
-                (env_cfg.agent_cfg.is_active == UVM_ACTIVE) &&
-                (env_cfg.agent_cfg.role == AHB_MASTER))
+        if (env_cfg.enable_predictor && (env_cfg.external_intent ||
+                ((env_cfg.agent_cfg.is_active == UVM_ACTIVE) &&
+                 (env_cfg.agent_cfg.role == AHB_MASTER))))
             begin
                 uvm_config_db#(amba_ahb_lite_agent_config)::set(this, "predictor", "cfg", env_cfg.agent_cfg);
                 predictor = amba_ahb_lite_predictor::type_id::create("predictor", this);
             end
+        if (env_cfg.enable_scoreboard && predictor == null)
+            `uvm_fatal("AHB_CFG", "Semantic scoreboard requires an intent predictor")
         if (env_cfg.enable_scoreboard)
             begin
                 uvm_config_db#(amba_ahb_lite_agent_config)::set(this, "scoreboard", "cfg", env_cfg.agent_cfg);
@@ -52,11 +56,18 @@ class amba_ahb_lite_env extends uvm_env;
         agent.monitor.item_ap.connect(observed_export);
         agent.monitor.reset_ap.connect(reset_export);
         if (stream_scoreboard != null) begin
+            agent.monitor.accepted_ap.connect(stream_scoreboard.accepted_export);
+            agent.monitor.aborted_ap.connect(stream_scoreboard.aborted_export);
             observed_export.connect(stream_scoreboard.item_export);
             reset_export.connect(stream_scoreboard.reset_export);
         end
-        if ((predictor != null) && (env_cfg.agent_cfg.role == AHB_MASTER)) begin
-            agent.master_driver.request_ap.connect(predictor.intent_export);
+        if (predictor != null) begin
+            intent_export.connect(predictor.intent_export);
+            agent.monitor.aborted_ap.connect(predictor.aborted_export);
+            if (agent.master_driver != null) begin
+                agent.master_driver.request_ap.connect(intent_export);
+                agent.master_driver.result_ap.connect(predictor.result_export);
+            end
             agent.monitor.item_ap.connect(predictor.actual_export);
             agent.monitor.reset_ap.connect(predictor.reset_export);
         end
@@ -66,7 +77,11 @@ class amba_ahb_lite_env extends uvm_env;
                 predictor.expected_ap.connect(scoreboard.expected_export);
             agent.monitor.reset_ap.connect(scoreboard.reset_export);
         end
-        if (coverage != null)
+        if (coverage != null) begin
             agent.monitor.item_ap.connect(coverage.analysis_export);
+            agent.monitor.cycle_ap.connect(coverage.cycle_export);
+            agent.monitor.reset_ap.connect(coverage.reset_export);
+            agent.monitor.aborted_ap.connect(coverage.aborted_export);
+        end
     endfunction
 endclass

@@ -16,6 +16,7 @@ class amba_ahb_lite_agent extends uvm_agent;
         super.build_phase(phase);
         if (!uvm_config_db#(amba_ahb_lite_agent_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("AHB_CFG", "Agent requires amba_ahb_lite_agent_config")
+        is_active = cfg.is_active;
         if (cfg.vif == null)
             `uvm_fatal("AHB_VIF", "Agent configuration contains a null virtual interface")
         if (!cfg.validate())
@@ -44,6 +45,7 @@ class amba_ahb_lite_agent extends uvm_agent;
         super.connect_phase(phase);
         if (protocol_checker != null) begin
             monitor.item_ap.connect(protocol_checker.analysis_export);
+            monitor.cycle_ap.connect(protocol_checker.cycle_export);
             monitor.reset_ap.connect(protocol_checker.reset_export);
         end
         if (cfg.is_active == UVM_ACTIVE) begin

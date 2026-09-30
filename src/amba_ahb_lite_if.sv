@@ -11,6 +11,9 @@ interface amba_ahb_lite_if #(
     input logic HRESETn
 );
 
+    timeunit 1ns;
+    timeprecision 1ps;
+
     logic [ADDR_WIDTH-1:0] HADDR;
     logic                  HWRITE;
     logic [1:0]            HTRANS;
@@ -74,6 +77,28 @@ interface amba_ahb_lite_if #(
     // a standalone initial smoke task. Runtime UVM drivers use these assignments
     // from run_phase; the narrow waiver avoids changing race-free NBA semantics.
     /* verilator lint_off INITIALDLY */
+    task automatic master_reset_idle();
+        HADDR <= '0;
+        HWRITE <= 1'b0;
+        HTRANS <= 2'b00;
+        HSIZE <= 3'b010;
+        HBURST <= 3'b000;
+        HPROT <= 4'b0011;
+        HMASTLOCK <= 1'b0;
+        HWDATA <= '0;
+        // Keep clocking output state synchronized with the asynchronous pins.
+        master_idle();
+    endtask
+
+    task automatic slave_reset_ready();
+        HREADYOUT <= 1'b1;
+        HRESP <= 1'b0;
+        HRDATA <= '0;
+        slave_drive_cb.HREADYOUT <= 1'b1;
+        slave_drive_cb.HRESP <= 1'b0;
+        slave_drive_cb.HRDATA <= '0;
+    endtask
+
     task automatic master_idle();
         master_drive_cb.HADDR     <= '0;
         master_drive_cb.HWRITE    <= 1'b0;
@@ -84,6 +109,13 @@ interface amba_ahb_lite_if #(
         master_drive_cb.HMASTLOCK <= 1'b0;
         master_drive_cb.HWDATA    <= '0;
     endtask
+
+    logic [ADDR_WIDTH-1:0] launch_addr;
+    logic [2:0] launch_size;
+    logic [2:0] launch_burst;
+    bit launch_accepted;
+    int unsigned reset_generation = 0;
+    always @(negedge HRESETn) reset_generation++;
 
     task automatic master_drive(
         input logic [ADDR_WIDTH-1:0] addr,
@@ -99,8 +131,11 @@ interface amba_ahb_lite_if #(
         // sampled.  The driver therefore cannot race a DUT sampling at posedge.
         @(master_drive_cb);
         if (!HRESETn) begin
-            master_idle();
+            master_reset_idle();
         end else begin
+            launch_addr = addr;
+            launch_size = size;
+            launch_burst = burst;
             master_drive_cb.HADDR     <= addr;
             master_drive_cb.HWRITE    <= write;
             master_drive_cb.HTRANS    <= trans;
@@ -108,7 +143,7 @@ interface amba_ahb_lite_if #(
             master_drive_cb.HBURST    <= burst;
             master_drive_cb.HPROT     <= prot;
             master_drive_cb.HMASTLOCK <= lock;
-            master_drive_cb.HWDATA    <= wdata;
+            master_drive_cb.HWDATA    <= wdata << (int'(addr % (DATA_WIDTH / 8)) * 8);
         end
     endtask
     /* verilator lint_on INITIALDLY */
@@ -122,8 +157,12 @@ interface amba_ahb_lite_if #(
         output int unsigned           wait_cycles,
         output bit                     completed,
         output bit                     reset_abort,
-        output bit                     timed_out
+        output bit                     timed_out,
+        input logic [1:0]               next_trans = 2'b00
     );
+        int unsigned launch_reset_generation;
+        launch_reset_generation = reset_generation;
+        launch_accepted = 1'b0;
         rdata       = '0;
         resp        = 1'b0;
         wait_cycles = 0;
@@ -136,9 +175,9 @@ interface amba_ahb_lite_if #(
         // phase's normally-high HREADY for completion of this transfer.
         do begin
             @(master_sample_cb);
-            if (!master_sample_cb.HRESETn) begin
+            if (!master_sample_cb.HRESETn || reset_generation != launch_reset_generation) begin
                 reset_abort = 1'b1;
-                master_idle();
+                master_reset_idle();
                 return;
             end
             if (!master_sample_cb.HREADY) begin
@@ -151,23 +190,43 @@ interface amba_ahb_lite_if #(
             end
         end while (!master_sample_cb.HREADY);
 
-        // The serial BFM has no pipelined successor, so it holds the accepted
-        // address/control and data signals through the complete data phase.
-        // This is required when the data phase inserts HREADY-low waits.
+        launch_accepted = 1'b1;
+        // The accepted address is no longer presented as a new transfer.
+        // Preserve write data while its data phase waits. BUSY bridges burst beats.
+        @(master_drive_cb);
+        if (!HRESETn || reset_generation != launch_reset_generation) begin
+            reset_abort = 1'b1;
+            master_reset_idle();
+            return;
+        end
+        master_drive_cb.HTRANS <= next_trans;
+        if (next_trans == 2'b01) begin
+            logic [ADDR_WIDTH-1:0] candidate;
+            int unsigned boundary;
+            candidate = launch_addr + (1 << launch_size);
+            boundary = (launch_burst inside {3'b010, 3'b100, 3'b110}) ?
+                ((launch_burst == 3'b010 ? 4 : launch_burst == 3'b100 ? 8 : 16) << launch_size) : 0;
+            if ((boundary != 0) && ((candidate / boundary) != (launch_addr / boundary)))
+                candidate = (launch_addr / boundary) * boundary;
+            master_drive_cb.HADDR <= candidate;
+        end
 
         forever begin
             @(master_sample_cb);
-            if (!master_sample_cb.HRESETn) begin
+            if (!master_sample_cb.HRESETn || reset_generation != launch_reset_generation) begin
                 reset_abort = 1'b1;
-                master_idle();
+                master_reset_idle();
                 return;
             end
             if (master_sample_cb.HREADY) begin
-                rdata     = master_sample_cb.HRDATA;
+                rdata = master_sample_cb.HRDATA >> (int'(launch_addr % (DATA_WIDTH / 8)) * 8);
+                if (int'(launch_size) < $clog2(DATA_WIDTH / 8))
+                    rdata &= (DATA_WIDTH'(1) << ((1 << launch_size) * 8)) - 1;
                 resp      = master_sample_cb.HRESP;
                 completed = 1'b1;
                 @(master_drive_cb);
-                master_idle();
+                if (next_trans == 2'b00)
+                    master_idle();
                 return;
             end
             wait_cycles++;
@@ -179,4 +238,11 @@ interface amba_ahb_lite_if #(
         end
     endtask
 
+    bit assertions_enable = 1'b0;
+    assert_master_idle: assert property (@(posedge HCLK)
+            (assertions_enable && !HRESETn) |-> (HTRANS == 2'b00))
+            else $error("AHB_ASSERT_RESET: master is not IDLE during reset");
+    assert_slave_ready: assert property (@(posedge HCLK)
+            (assertions_enable && !HRESETn) |-> HREADYOUT)
+            else $error("AHB_ASSERT_RESET: slave is not ready during reset");
 endinterface

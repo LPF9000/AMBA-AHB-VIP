@@ -3,6 +3,10 @@ virtual class amba_ahb_lite_responder_model extends uvm_object;
         super.new(name);
     endfunction
 
+    // Lookup receives address/control and packed payload when available.
+    virtual function void reset(bit clear_memory);
+    endfunction
+
     pure virtual function void get_response(
         input amba_ahb_lite_item request,
         output bit [31:0] rdata,
@@ -50,6 +54,11 @@ class amba_ahb_lite_memory_model extends amba_ahb_lite_responder_model;
 
     function new(string name = "amba_ahb_lite_memory_model");
         super.new(name);
+    endfunction
+
+    virtual function void reset(bit clear_memory);
+        if (clear_memory)
+            mem.delete();
     endfunction
 
     virtual function void get_response(
@@ -102,9 +111,7 @@ class amba_ahb_lite_agent_config extends uvm_object;
     uvm_active_passive_enum is_active = UVM_ACTIVE;
     ahb_vip_role_e role = AHB_MASTER;
     bit checks_enable = 1'b1;
-    bit coverage_enable = 1'b0;
-    bit drive_idle_on_reset = 1'b1;
-    bit ready_on_reset = 1'b1;
+    // Reset pin values are mandatory for this protocol profile.
     int unsigned addr_width = 32;
     int unsigned data_width = 32;
     bit has_hsel = 1'b1;
@@ -113,9 +120,8 @@ class amba_ahb_lite_agent_config extends uvm_object;
     bit allow_busy = 1'b1;
     bit allow_bursts = 1'b1;
     bit flush_on_reset = 1'b1;
-    bit predictor_enable = 1'b1;
-    bit scoreboard_enable = 1'b1;
     int unsigned default_wait_cycles = 0;
+    bit automatic_response = 1'b1;
     uvm_severity protocol_severity = UVM_ERROR;
     amba_ahb_lite_responder_model responder_model;
     amba_ahb_lite_response_policy response_policy;

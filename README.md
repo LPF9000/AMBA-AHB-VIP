@@ -1,48 +1,64 @@
 # AMBA AHB VIP
 
-SystemVerilog/UVM verification IP for Arm AMBA AHB. The goal is to support the
-different AHB versions and variants through explicit, parameterized protocol
-configurations. Development starts with AMBA 3 AHB-Lite.
+SystemVerilog/UVM verification IP for Arm AMBA AHB. We are currently working
+only on AMBA 3 AHB-Lite. The longer-term goal is to support other AHB versions
+and variants, but they are outside the current implementation plan.
 
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
 ## Current implementation
 
-The first implementation assumes one master and one selected slave, with
-32-bit addresses and transactions. The signal interface has width parameters,
-but the transaction layer does not yet support wider configurations.
+The current baseline uses 32-bit addresses and data, little-endian lane mapping,
+one master, and one selected slave. The interface has width parameters; the
+transaction configuration rejects non-32-bit widths and big-endian operation.
+Byte, halfword, and word transfers are included in the expanded local tests.
 
-The source includes master and slave drivers, a passive monitor, protocol
-checker, predictor, scoreboards, optional coverage, and typed agent and
-environment configuration. It was ported from an existing pyuvm AHB testbench.
-Sequences describe transfers, drivers handle bus timing, and monitors publish
-completed observations for independent checking.
+The source includes active master and slave drivers, a passive monitor,
+protocol checker, predictor, scoreboards, optional coverage, and typed agent
+and environment configuration. Sequences describe transfers, drivers handle
+bus timing, and monitors publish accepted, completed, and aborted observations.
+The testbench uses independent behavioral endpoints to exercise the VIP.
 
-This is an early implementation. Interface and passive UVM topology smoke tests
-are available. Active end-to-end regressions, DUT integration, and coverage
-closure remain open; see the [roadmap](ROADMAP.md).
+A fresh run of the original five smoke tests passed with seed 1 under Verilator
+5.052, including reset recovery. An expanded 33-test suite is being validated
+locally. It covers pipelining, lanes, active slave responses, reset, timeouts,
+bursts, and deliberate checking failures. Those implementation changes remain
+under review; this is not yet complete protocol qualification.
+
+Seed sweeps, coverage review, and simulator portability checks remain open.
+No application DUT has been integrated. See the [roadmap](ROADMAP.md).
+
+## Protocol reference
+
+The current profile follows the AMBA 3 AHB-Lite specification, ARM IHI 0033A.
+Prior reviews also consulted IHI0033C; later AHB extensions are outside this
+profile. Bus widths, endianness, reset memory behavior, and timeout limits are
+implementation or test configuration choices, not claims of complete support
+for everything the specification permits.
 
 ## Getting started
 
-The source is in `src/` and smoke test tops are in `tb/`. The filelists are
-`amba_ahb_lite.f` and `amba_ahb_lite_uvm.f`. UVM compilation requires a
-simulator-provided or separately installed UVM library.
+The source is in `src/` and smoke test tops are in `tb/`. Use
+`amba_ahb_lite.f` for the interface smoke and `amba_ahb_lite_uvm.f` for the UVM
+harness. UVM compilation requires a separately available UVM library.
 
 The existing `./dv` launcher uses an external DVFlow installation. It defaults
 to a sibling `TRNG-research` checkout; set `DVFLOW_ROOT` to use another location.
-The Verilator UVM path requires version 5.052 or newer. The toolchain and build
-outputs are local and are not included in the repository.
+The Verilator UVM path requires version 5.052 or newer. Local tools and build
+outputs are not included in the repository.
 
 ```sh
+export PATH="$PWD/.toolchain/verilator-5.052/bin:$PATH"
 ./dv verify project --skip-source-check
 ./dv sim run --backend verilator --test amba_ahb_lite_topology_test
 ```
 
-See [testbench notes](tb/README.md) for the focused test matrix and
-[tooling notes](tools/README.md) for the existing DVFlow adapter.
+The PATH example selects an existing local installation; fresh clones need
+their own tool installation. See [testbench notes](tb/README.md) for available
+tests and [tooling notes](tools/README.md) for the DVFlow adapter.
 
 ## AMBA VIP collection
 
-This repository is also included as a submodule of
+This repository is included as a submodule of
 [AMBA-VIP](https://github.com/LPF9000/AMBA-VIP), which will bring the AMBA protocol
 families together as they are implemented.

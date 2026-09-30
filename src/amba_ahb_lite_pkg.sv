@@ -1,4 +1,6 @@
 package amba_ahb_lite_pkg;
+    timeunit 1ns;
+    timeprecision 1ps;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
@@ -39,12 +41,15 @@ package amba_ahb_lite_pkg;
     typedef enum {AHB_MASTER, AHB_SLAVE} ahb_vip_role_e;
 
     function automatic int unsigned ahb_size_bytes(ahb_hsize_e size);
+        if ($isunknown(size))
+            return 0;
         return (1 << int'(size));
     endfunction
 
     function automatic bit ahb_size_supported(ahb_hsize_e size,
                                                                                           int unsigned data_width);
-        return (ahb_size_bytes(size) <= (data_width / 8));
+        return !$isunknown(size) && (ahb_size_bytes(size) != 0) &&
+            (ahb_size_bytes(size) <= (data_width / 8));
     endfunction
 
     function automatic int unsigned ahb_burst_length(ahb_hburst_e burst);
@@ -62,6 +67,7 @@ package amba_ahb_lite_pkg;
     endfunction
 
     `include "amba_ahb_lite_item.svh"
+    `include "amba_ahb_lite_cycle_item.svh"
     `include "amba_ahb_lite_config.svh"
     `include "amba_ahb_lite_observed_item.svh"
     `include "amba_ahb_lite_reset_event.svh"
