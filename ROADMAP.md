@@ -34,5 +34,7 @@ These results apply to the documented 32-bit AHB-Lite slice under Verilator 5.05
 October 14 qualification of the synchronous drive model passed 140 randomized
 functional runs, 35 deterministic runs, 3 unit tests, 10 temporary-DUT runs,
 5 digital bridge runs, 26 assertion cases and the expanded interface contract.
-Strict SystemVerilog elaboration reports zero errors, with warnings still open.
+Strict SystemVerilog elaboration reports zero errors and no local VIP/testbench
+warnings after arithmetic and UVM override cleanup. External UVM diagnostics
+remain visible; the full local runtime matrix passed again after that cleanup.
 Generic bus glitch/setup/hold checking remains a separate checker-library gap.

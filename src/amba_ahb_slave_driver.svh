@@ -95,7 +95,7 @@ class amba_ahb_slave_driver extends uvm_driver #(amba_ahb_item);
                         ahb_size_bytes(pending.size) : 0;
                     mask = bytes == ahb_data_bytes ? ahb_data_t'('1) : ((ahb_data_t'(1) << (bytes * ahb_byte_bits)) - 1);
                     pending.wdata = (vif.monitor_cb.HWDATA >>
-                        (int'(pending.addr % ahb_data_bytes) * ahb_byte_bits)) & mask;
+                        ((pending.addr % ahb_data_bytes) * ahb_byte_bits)) & mask;
                     if (cfg.responder_model != null)
                         cfg.responder_model.commit(pending, response_kind);
                     finish_script(1'b0, 1'b0);
@@ -110,7 +110,7 @@ class amba_ahb_slave_driver extends uvm_driver #(amba_ahb_item);
                 end
             end
             if (vif.monitor_cb.HREADY && vif.monitor_cb.HSEL &&
-                    (vif.monitor_cb.HTRANS inside {AHB_NONSEQ, AHB_SEQ}))
+                    (ahb_htrans_e'(vif.monitor_cb.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}))
                 accept_address();
             // Respond for the following cycle after consuming this edge's
             // snapshot. Output #0 schedules the pins after DUT input sampling.
@@ -140,7 +140,7 @@ class amba_ahb_slave_driver extends uvm_driver #(amba_ahb_item);
             end else begin
                 vif.slave_drive_cb.HREADYOUT <= 1'b1;
                 vif.slave_drive_cb.HRESP <= response_kind;
-                vif.slave_drive_cb.HRDATA <= response_data << (int'(pending.addr % ahb_data_bytes) * ahb_byte_bits);
+                vif.slave_drive_cb.HRDATA <= response_data << ((pending.addr % ahb_data_bytes) * ahb_byte_bits);
             end
         end
     endtask

@@ -29,8 +29,8 @@ class amba_ahb_lite_tb_source extends uvm_driver #(amba_ahb_lite_tb_batch_item);
             data_phase = null;
             announced = 1'b0;
             @(cfg.vif.master_sample_cb);
-            while (index < batch.transfers.size() || data_phase != null) begin
-                if (index < batch.transfers.size()) begin
+            while (index < unsigned'(batch.transfers.size()) || data_phase != null) begin
+                if (index < unsigned'(batch.transfers.size())) begin
                     cfg.vif.master_drive_cb.HADDR <= batch.transfers[index].addr;
                     cfg.vif.master_drive_cb.HWRITE <= batch.transfers[index].write;
                     cfg.vif.master_drive_cb.HTRANS <= batch.transfers[index].trans;
@@ -48,13 +48,13 @@ class amba_ahb_lite_tb_source extends uvm_driver #(amba_ahb_lite_tb_batch_item);
                     cfg.vif.master_drive_cb.HTRANS <= AHB_IDLE;
                 end
                 cfg.vif.master_drive_cb.HWDATA <= data_phase == null ? '0 :
-                    data_phase.wdata << (int'(data_phase.addr % ahb_data_bytes) * ahb_byte_bits);
+                    data_phase.wdata << ((data_phase.addr % ahb_data_bytes) * ahb_byte_bits);
                 @(cfg.vif.master_sample_cb);
                 if (!cfg.vif.master_sample_cb.HRESETn)
                     `uvm_fatal("AHB_SOURCE", "Unexpected reset in pipeline-only source scenario")
                 if (cfg.vif.master_sample_cb.HREADY) begin
                     data_phase = null;
-                    if (index < batch.transfers.size()) begin
+                    if (index < unsigned'(batch.transfers.size())) begin
                         if (batch.transfers[index].trans inside {AHB_NONSEQ, AHB_SEQ})
                             data_phase = batch.transfers[index];
                         index++;

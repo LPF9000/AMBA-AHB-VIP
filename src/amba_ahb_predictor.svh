@@ -84,11 +84,11 @@ class amba_ahb_predictor extends uvm_component;
                 (expected.resp == AHB_OKAY)) begin
             if (intent.write) begin
                 for (int unsigned i = 0; i < nbytes; i++)
-                    mem[longint'(intent.addr) + longint'(i)] = intent.wdata[i* ahb_byte_bits +: ahb_byte_bits];
+                    mem[$unsigned(longint'(intent.addr)) + $unsigned(longint'(i))] = intent.wdata[i* ahb_byte_bits +: ahb_byte_bits];
             end else begin
                 for (int unsigned i = 0; i < nbytes; i++)
-                    expected.rdata[i* ahb_byte_bits +: ahb_byte_bits] = mem.exists(longint'(intent.addr) + longint'(i)) ?
-                        mem[longint'(intent.addr) + longint'(i)] : '0;
+                    expected.rdata[i* ahb_byte_bits +: ahb_byte_bits] = mem.exists($unsigned(longint'(intent.addr)) + $unsigned(longint'(i))) ?
+                        mem[$unsigned(longint'(intent.addr)) + $unsigned(longint'(i))] : '0;
             end
         end
         expected_ap.write(expected);

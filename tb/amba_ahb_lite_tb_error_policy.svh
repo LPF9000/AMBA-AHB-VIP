@@ -6,7 +6,7 @@ class amba_ahb_lite_tb_error_policy extends amba_ahb_response_policy;
         super.new(name);
     endfunction
 
-    function ahb_hresp_e predict_response(amba_ahb_item item);
-        return item.addr == error_addr && item.write ? AHB_ERROR : AHB_OKAY;
+    function ahb_hresp_e predict_response(amba_ahb_item request);
+        return request.addr == error_addr && request.write ? AHB_ERROR : AHB_OKAY;
     endfunction
 endclass

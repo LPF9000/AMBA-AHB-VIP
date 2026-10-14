@@ -82,8 +82,8 @@ class amba_ahb_scoreboard extends uvm_component;
 
     function void write_scoreboard_reset(amba_ahb_reset_event event_item);
         begin // Lifecycle queues always flush; memory retention is separate.
-            reset_dropped_actual += actual_q.size();
-            reset_dropped_expected += expected_q.size();
+            reset_dropped_actual += unsigned'(actual_q.size());
+            reset_dropped_expected += unsigned'(expected_q.size());
             actual_q.delete();
             expected_q.delete();
         end

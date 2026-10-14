@@ -56,22 +56,22 @@ class amba_ahb_coverage extends uvm_subscriber #(amba_ahb_observed_item);
         transfer_cg = new();
     endfunction
 
-    function void write(amba_ahb_observed_item item);
-        size_sample = item.size;
-        burst_sample = item.burst;
-        resp_sample = item.resp;
-        write_sample = item.write;
-        wait_sample = item.wait_cycles;
+    function void write(amba_ahb_observed_item t);
+        size_sample = t.size;
+        burst_sample = t.burst;
+        resp_sample = t.resp;
+        write_sample = t.write;
+        wait_sample = t.wait_cycles;
         transfer_cg.sample();
-        if (item.size inside {AHB_BYTE, AHB_HWORD, AHB_WORD}) begin
-            size_counts[int'(item.size)]++;
-            size_direction_counts[int'(item.size)][int'(item.write)]++;
+        if (t.size inside {AHB_BYTE, AHB_HWORD, AHB_WORD}) begin
+            size_counts[int'(t.size)]++;
+            size_direction_counts[int'(t.size)][int'(t.write)]++;
         end
-        burst_counts[int'(item.burst)]++;
-        direction_counts[int'(item.write)]++;
-        response_counts[int'(item.resp)]++;
-        lane_counts[int'(item.addr % ahb_data_bytes)]++;
-        wait_counts[item.wait_cycles == 0 ? 0 : item.wait_cycles <= ahb_coverage_wait_limit ? 1 : 2]++;
+        burst_counts[int'(t.burst)]++;
+        direction_counts[int'(t.write)]++;
+        response_counts[int'(t.resp)]++;
+        lane_counts[int'(t.addr % ahb_data_bytes)]++;
+        wait_counts[t.wait_cycles == 0 ? 0 : t.wait_cycles <= ahb_coverage_wait_limit ? 1 : 2]++;
     endfunction
 
     function void write_coverage_cycle(amba_ahb_cycle_item item);

@@ -40,7 +40,7 @@ class amba_ahb_monitor extends uvm_monitor;
             return 'x;
         bytes = ahb_size_bytes(size);
         mask = (bytes == ahb_data_bytes) ? ahb_data_t'('1) : ((ahb_data_t'(1) << (bytes * ahb_byte_bits)) - 1);
-        return (data >> (int'(addr % ahb_data_bytes) * ahb_byte_bits)) & mask;
+        return (data >> ((addr % ahb_data_bytes) * ahb_byte_bits)) & mask;
     endfunction
 
     function void abort_pending(bit reset_abort);

@@ -9,8 +9,8 @@ class amba_ahb_lite_tb_lifecycle extends uvm_subscriber #(amba_ahb_item);
         timeout_seen = new("timeout_seen");
     endfunction
 
-    function void write(amba_ahb_item item);
-        if (item.timed_out)
+    function void write(amba_ahb_item t);
+        if (t.timed_out)
             timeout_seen.trigger();
     endfunction
 

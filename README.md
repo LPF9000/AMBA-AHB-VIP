@@ -25,6 +25,11 @@ uses the values present before the rising edge, including responses that settle
 after the falling edge. Updates caused by the completing edge belong to the
 following cycle. The transport needs no response cache or settling delay.
 
+Strict language checks report no warnings or errors in the VIP, interface or
+self-test source. External UVM diagnostics remain visible. The current local
+Verilator gates include 193 UVM runs, 26 assertion cases and an independent
+interface contract; alternate-simulator and four-state runtime checks remain open.
+
 Functional tests use typed virtual sequencers and parented child sequences.
 The environment schedules initial reset, the test prepares the virtual sequence
 in pre_main, and run starts traffic after reset. Constraint randomization is on

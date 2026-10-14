@@ -54,28 +54,28 @@ class amba_ahb_lite_tb_observer extends uvm_subscriber #(amba_ahb_observed_item)
         uvm_report_cb::add(report_source, report_policy);
     endfunction
 
-    function void write(amba_ahb_observed_item item);
+    function void write(amba_ahb_observed_item t);
         completions++;
-        if ((cfg.scenario inside {TB_RESPONSE_LATE, TB_RESPONSE_EDGE}) && !item.write) begin
+        if ((cfg.scenario inside {TB_RESPONSE_LATE, TB_RESPONSE_EDGE}) && !t.write) begin
             timing_reads++;
-            if (item.addr !== cfg.base_addr || item.rdata !== tb_timing_data ||
-                    item.resp !== AHB_OKAY || item.wait_cycles != 0 ||
-                    !item.completed || item.reset_abort || item.timed_out)
+            if (t.addr !== cfg.base_addr || t.rdata !== tb_timing_data ||
+                    t.resp !== AHB_OKAY || t.wait_cycles != 0 ||
+                    !t.completed || t.reset_abort || t.timed_out)
                 `uvm_error("AHB_TIMING", "Monitor did not preserve the rising-edge read response")
         end
         if ((cfg.reset_on_transfer || cfg.expected_timeouts != 0) &&
-                !item.write && item.addr == cfg.base_addr && item.rdata !== '0)
+                !t.write && t.addr == cfg.base_addr && t.rdata !== '0)
             `uvm_error("AHB_REQUIREMENT", "Aborted write changed recovery readback")
-        if (cfg.scenario == TB_RESET_RETAIN && !item.write && item.addr == (cfg.base_addr + ahb_data_bytes)) begin
-            if (retained_reads == 0 && item.rdata !== cfg.retained_data)
+        if (cfg.scenario == TB_RESET_RETAIN && !t.write && t.addr == (cfg.base_addr + ahb_data_bytes)) begin
+            if (retained_reads == 0 && t.rdata !== cfg.retained_data)
                 `uvm_error("AHB_REQUIREMENT", "Reset lost memory configured for retention")
             retained_reads++;
         end
         if (cfg.scenario inside {TB_WAIT, TB_SLAVE_WAIT, TB_SLAVE_SCRIPT, TB_LONG_WAIT, TB_READY}) begin
-            if (item.wait_cycles != cfg.waits)
+            if (t.wait_cycles != cfg.waits)
                 `uvm_error("AHB_REQUIREMENT", "Observed wait count differs from the scenario policy")
         end
-        if (item.resp == AHB_ERROR && (!item.error_wait_seen || !item.error_complete_seen))
+        if (t.resp == AHB_ERROR && (!t.error_wait_seen || !t.error_complete_seen))
             `uvm_error("AHB_REQUIREMENT", "ERROR lacks independently sampled response evidence")
     endfunction
 

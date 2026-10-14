@@ -167,13 +167,13 @@ class amba_ahb_protocol_checker extends uvm_subscriber #(amba_ahb_observed_item)
         previous.copy(sample);
     endfunction
 
-    function void write(amba_ahb_observed_item item);
-        if (!item.completed || !item.address_accepted || !item.data_completed)
+    function void write(amba_ahb_observed_item t);
+        if (!t.completed || !t.address_accepted || !t.data_completed)
             violation("Monitor published an incomplete transfer");
-        if ((item.resp == AHB_ERROR) &&
-                (!item.error_wait_seen || !item.error_complete_seen))
+        if ((t.resp == AHB_ERROR) &&
+                (!t.error_wait_seen || !t.error_complete_seen))
             violation("ERROR transfer lacks sampled two-cycle response evidence");
-        if ($isunknown(item.write ? item.wdata : item.rdata))
+        if ($isunknown(t.write ? t.wdata : t.rdata))
             violation("Unknown active data lane at completion");
     endfunction
 

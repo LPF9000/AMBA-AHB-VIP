@@ -13,12 +13,12 @@ class amba_ahb_burst_seq extends amba_ahb_base_seq;
         incr_length inside {[1:max_incr_length]};
         solve burst, incr_length, size before addr, data;
         (addr % (1 << int'(size))) == 0;
-        data.size() == ((burst == AHB_INCR) ? incr_length :
+        data.size() == int'((burst == AHB_INCR) ? incr_length :
             (burst inside {AHB_WRAP4, AHB_INCR4}) ? ahb_burst4_beats :
             (burst inside {AHB_WRAP8, AHB_INCR8}) ? ahb_burst8_beats :
             (burst inside {AHB_WRAP16, AHB_INCR16}) ? ahb_burst16_beats : 1);
         if (!(burst inside {AHB_WRAP4, AHB_WRAP8, AHB_WRAP16}))
-            (addr % ahb_burst_boundary_bytes) + data.size() * (1 << int'(size)) <= ahb_burst_boundary_bytes;
+            (addr % ahb_burst_boundary_bytes) + unsigned'(data.size()) * unsigned'(1 << int'(size)) <= ahb_burst_boundary_bytes;
     }
 
     function new(string name = "amba_ahb_burst_seq");
@@ -28,15 +28,15 @@ class amba_ahb_burst_seq extends amba_ahb_base_seq;
     function automatic ahb_addr_t next_address(ahb_addr_t current,
         ahb_hsize_e transfer_size,
         ahb_hburst_e burst_kind);
-        longint unsigned bytes = longint'(ahb_size_bytes(transfer_size));
-        longint unsigned beats = longint'(ahb_burst_length(burst_kind));
-        longint unsigned candidate = longint'(current) + bytes;
+        longint unsigned bytes = $unsigned(longint'(ahb_size_bytes(transfer_size)));
+        longint unsigned beats = $unsigned(longint'(ahb_burst_length(burst_kind)));
+        longint unsigned candidate = $unsigned(longint'(current)) + bytes;
         longint unsigned base;
         longint unsigned boundary;
         if (!ahb_is_wrapping(burst_kind))
             return ahb_addr_t'(candidate);
         boundary = beats * bytes;
-        base = (longint'(current) / boundary) * boundary;
+        base = ($unsigned(longint'(current)) / boundary) * boundary;
         if (candidate >= (base + boundary))
             candidate = base;
         return ahb_addr_t'(candidate);
@@ -47,7 +47,7 @@ class amba_ahb_burst_seq extends amba_ahb_base_seq;
         ahb_addr_t current = addr;
         if (beats == 0)
             beats = incr_length;
-        if (data.size() < beats)
+        if (unsigned'(data.size()) < beats)
             data = new[beats];
         for (int unsigned i = 0; i < beats; i++) begin
             amba_ahb_item req = make_transfer($sformatf("beat_%0d", i),

@@ -34,8 +34,8 @@ class amba_ahb_memory_model extends amba_ahb_responder_model;
             // Writes are committed by commit() after a completed OKAY response.
         end else begin
             for (int unsigned i = 0; i < nbytes; i++)
-                rdata[i* ahb_byte_bits +: ahb_byte_bits] = mem.exists(longint'(request.addr) + longint'(i)) ?
-                    mem[longint'(request.addr) + longint'(i)] : '0;
+                rdata[i* ahb_byte_bits +: ahb_byte_bits] = mem.exists($unsigned(longint'(request.addr)) + $unsigned(longint'(i))) ?
+                    mem[$unsigned(longint'(request.addr)) + $unsigned(longint'(i))] : '0;
         end
     endfunction
 
@@ -50,6 +50,6 @@ class amba_ahb_memory_model extends amba_ahb_responder_model;
                 ((request.addr & (nbytes - 1)) != 0))
             return;
         for (int unsigned i = 0; i < nbytes; i++)
-            mem[longint'(request.addr) + longint'(i)] = request.wdata[i* ahb_byte_bits +: ahb_byte_bits];
+            mem[$unsigned(longint'(request.addr)) + $unsigned(longint'(i))] = request.wdata[i* ahb_byte_bits +: ahb_byte_bits];
     endfunction
 endclass

@@ -18,7 +18,7 @@ module amba_ahb_lite_if_smoke;
     assign bus.HSEL = 1'b1;
     bit reference_pending;
     ahb_data_t reference_data;
-    logic reference_resp;
+    ahb_hresp_e reference_resp;
     int unsigned reference_completions;
 
     // Independent synchronous receiver: capture pre-NBA pins exactly as RTL
@@ -32,7 +32,7 @@ module amba_ahb_lite_if_smoke;
         end else if (bus.HREADY) begin
             if (reference_pending) begin
                 reference_data <= bus.HRDATA;
-                reference_resp <= bus.HRESP;
+                reference_resp <= ahb_hresp_e'(bus.HRESP);
                 reference_completions <= reference_completions + 1;
             end
             reference_pending <= bus.HTRANS[1];
@@ -47,7 +47,7 @@ module amba_ahb_lite_if_smoke;
 
     task automatic respond_okay(int unsigned waits, ahb_data_t data);
         do @(posedge hclk);
-        while (hresetn && !(bus.HTRANS inside {2'b10, 2'b11}));
+        while (hresetn && !(ahb_htrans_e'(bus.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}));
         if (!hresetn)
             return;
         for (int unsigned i = 0; i < waits; i++) begin
@@ -63,7 +63,7 @@ module amba_ahb_lite_if_smoke;
 
     task automatic respond_error();
         do @(posedge hclk);
-        while (hresetn && !(bus.HTRANS inside {2'b10, 2'b11}));
+        while (hresetn && !(ahb_htrans_e'(bus.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}));
         if (!hresetn)
             return;
         @(negedge hclk);
@@ -78,7 +78,7 @@ module amba_ahb_lite_if_smoke;
 
     task automatic respond_late();
         do @(posedge hclk);
-        while (!(bus.HTRANS inside {AHB_NONSEQ, AHB_SEQ}));
+        while (!(ahb_htrans_e'(bus.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}));
         bus.HREADYOUT <= 1'b0;
         bus.HRESP <= AHB_OKAY;
         bus.HRDATA <= '0;
@@ -90,7 +90,7 @@ module amba_ahb_lite_if_smoke;
 
     task automatic respond_same_edge();
         do @(posedge hclk);
-        while (!(bus.HTRANS inside {AHB_NONSEQ, AHB_SEQ}));
+        while (!(ahb_htrans_e'(bus.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}));
         bus.HREADYOUT <= 1'b1;
         bus.HRESP <= AHB_OKAY;
         bus.HRDATA <= tb_timing_data;
@@ -101,7 +101,7 @@ module amba_ahb_lite_if_smoke;
 
     task automatic respond_stalled();
         do @(posedge hclk);
-        while (hresetn && !(bus.HTRANS inside {AHB_NONSEQ, AHB_SEQ}));
+        while (hresetn && !(ahb_htrans_e'(bus.HTRANS) inside {AHB_NONSEQ, AHB_SEQ}));
         if (!hresetn)
             return;
         @(negedge hclk);

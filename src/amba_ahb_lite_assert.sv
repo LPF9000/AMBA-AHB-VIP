@@ -33,9 +33,9 @@ module amba_ahb_lite_assert #(
             input logic [2:0] size);
         ahb_data_t mask;
         mask = '0;
-        for (int lane = 0; lane < int'(ahb_data_bytes); lane++) begin
-            if (ahb_size_supported(ahb_hsize_e'(size), ahb_data_width) && lane >= int'(address % ahb_data_bytes) &&
-                    lane < int'(address % ahb_data_bytes) + (1 << size))
+        for (int unsigned lane = 0; lane < ahb_data_bytes; lane++) begin
+            if (ahb_size_supported(ahb_hsize_e'(size), ahb_data_width) && lane >= (address % ahb_data_bytes) &&
+                    lane < (address % ahb_data_bytes) + unsigned'(1 << size))
                 mask[lane * ahb_byte_bits +: ahb_byte_bits] = '1;
         end
         return mask;

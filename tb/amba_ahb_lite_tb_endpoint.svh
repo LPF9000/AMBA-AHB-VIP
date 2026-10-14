@@ -47,7 +47,7 @@ class amba_ahb_lite_tb_endpoint extends uvm_component;
                 if (write_access && !failed) begin
                     for (int unsigned i = 0; i < byte_count; i++)
                         memory[address + i] = cfg.vif.monitor_cb.HWDATA[
-                            ((int'(address % ahb_data_bytes) + i) * ahb_byte_bits) +: ahb_byte_bits];
+                            (((address % ahb_data_bytes) + i) * ahb_byte_bits) +: ahb_byte_bits];
                 end
                 pending = 1'b0;
             end
@@ -66,7 +66,7 @@ class amba_ahb_lite_tb_endpoint extends uvm_component;
             if (pending && !write_access) begin
                 for (int unsigned i = 0; i < byte_count; i++) begin
                     if (memory.exists(address + i))
-                        read_bus[((int'(address % ahb_data_bytes) + i) * ahb_byte_bits) +: ahb_byte_bits] = memory[address + i];
+                        read_bus[(((address % ahb_data_bytes) + i) * ahb_byte_bits) +: ahb_byte_bits] = memory[address + i];
                 end
             end
             if (!cfg.vif.HRESETn || !pending) begin

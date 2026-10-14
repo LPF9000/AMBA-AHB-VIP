@@ -99,4 +99,7 @@ tests, 10 temporary-DUT runs at seeds 1 and 17, and 5 digital bridge runs at
 seed 1. All 26 direct assertion cases and the expanded interface contract pass.
 Both incorrect-skew sensitivity variants fail their targeted comparison against
 the independent receiver. Strict elaboration of direct, functional and unit tops
-has zero errors; arithmetic/type warnings and external UVM warnings remain.
+has zero errors and no local VIP/testbench warnings. External UVM warnings remain
+visible. The same complete runtime matrix was rerun after the local arithmetic,
+enum and inherited-argument warning cleanup, with all gates passing and no
+Verilator build warnings.

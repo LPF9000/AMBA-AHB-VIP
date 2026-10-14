@@ -146,7 +146,7 @@ interface amba_ahb_if #(
             master_drive_cb.HBURST    <= burst;
             master_drive_cb.HPROT     <= prot;
             master_drive_cb.HMASTLOCK <= lock;
-            master_drive_cb.HWDATA    <= wdata << (int'(addr % (DATA_WIDTH / ahb_byte_bits)) * ahb_byte_bits);
+            master_drive_cb.HWDATA    <= wdata << ((addr % (DATA_WIDTH / ahb_byte_bits)) * ahb_byte_bits);
         end
     endtask
     /* verilator lint_on INITIALDLY */
@@ -218,9 +218,9 @@ interface amba_ahb_if #(
                 return;
             end
             if (master_sample_cb.HREADY) begin
-                rdata = master_sample_cb.HRDATA >> (int'(launch_addr % (DATA_WIDTH / ahb_byte_bits)) * ahb_byte_bits);
+                rdata = master_sample_cb.HRDATA >> ((launch_addr % (DATA_WIDTH / ahb_byte_bits)) * ahb_byte_bits);
                 if (int'(launch_size) < $clog2(DATA_WIDTH / ahb_byte_bits))
-                    rdata &= (DATA_WIDTH'(1) << ((1 << launch_size) * ahb_byte_bits)) - 1;
+                    rdata &= (DATA_WIDTH'(1'b1) << ((1 << launch_size) * ahb_byte_bits)) - DATA_WIDTH'(1'b1);
                 resp      = ahb_hresp_e'(master_sample_cb.HRESP);
                 completed = 1'b1;
                 if (next_trans == 2'b00)
