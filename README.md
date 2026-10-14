@@ -52,6 +52,9 @@ general bus-signal glitch checker. Intra-cycle response settling is permitted;
 a separate timing contract is needed to check setup/hold windows or pulse widths.
 
 The [sva-checkers library](checkers/README.md) is a pinned submodule at `checkers/`.
+The current pin is [`bce0f4e`](https://github.com/LPF9000/sva-checkers/commit/bce0f4ee1736defa37890164e14d83b105889f16),
+which rejects invalid address/counter bounds and preserves wide interrupt reset
+masks. Its strict language gate and all 53 runtime fixtures pass locally.
 It provides 29 reusable families with accepted-event contracts, configurable
 bounds and bounded reference state. Its language and runtime gates are separate
 from the AHB consumer tests. Four-state, alternate-simulator, formal and full

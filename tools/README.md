@@ -161,6 +161,6 @@ no private dependency credential. Add independent shared-tool integration CI
 when an appropriately scoped read credential is configured.
 
 The checker dependency is pinned to
-`5d0edc2fc5ce292ac4d2a24447563667fdf754da` on its reviewed feature branch.
+`bce0f4ee1736defa37890164e14d83b105889f16` on its feature branch.
 Its [draft PR](https://github.com/LPF9000/sva-checkers/pull/1) tracks initial
 qualification; four-state, formal and alternate-simulator gates remain open.
