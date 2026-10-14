@@ -1,0 +1,6 @@
+[submodule "tools/dv"]
+    path = tools/dv
+    url = https://github.com/LPF9000/dvflow.git
+[submodule "checkers"]
+    path = checkers
+    url = https://github.com/LPF9000/sva-checkers.git

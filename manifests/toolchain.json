@@ -1,9 +1,75 @@
 {
-  "schema_version": 1,
-  "default_install_root": ".toolchain",
-  "profiles": {"digital-eda": ["verilator"], "python": ["uv"]},
-  "tools": {
-    "verilator": {"display_name": "Verilator", "commands": ["verilator"], "version_args": ["--version"], "minimum_version": "5.052", "pinned_ref": "5.052-or-newer-for-UVM-2020-3.2"},
-    "uv": {"display_name": "uv", "commands": ["uv"], "version_args": ["--version"]}
-  }
+    "schema_version": 1,
+    "default_install_root": ".toolchain",
+    "profiles": {
+        "digital-eda": [
+            "verilator"
+        ],
+        "python": [
+            "uv"
+        ],
+        "waveform-debug": [
+            "waveform-viewer",
+            "vcd2fst",
+            "fst2vcd"
+        ],
+        "local-open-source": [
+            "verilator",
+            "uv",
+            "waveform-viewer"
+        ]
+    },
+    "tools": {
+        "verilator": {
+            "display_name": "Verilator",
+            "commands": [
+                "verilator"
+            ],
+            "version_args": [
+                "--version"
+            ],
+            "minimum_version": "5.052",
+            "pinned_ref": "5.052-or-newer-for-UVM-2020-3.2"
+        },
+        "uv": {
+            "display_name": "uv",
+            "commands": [
+                "uv"
+            ],
+            "version_args": [
+                "--version"
+            ]
+        },
+        "waveform-viewer": {
+            "display_name": "Surfer or GTKWave",
+            "commands": [
+                "surfer",
+                "gtkwave"
+            ],
+            "version_args": [
+                "--version"
+            ],
+            "required": true
+        },
+        "vcd2fst": {
+            "display_name": "VCD to FST conversion",
+            "commands": [
+                "vcd2fst"
+            ],
+            "version_args": [
+                "--help"
+            ],
+            "required": false
+        },
+        "fst2vcd": {
+            "display_name": "FST to VCD conversion",
+            "commands": [
+                "fst2vcd"
+            ],
+            "version_args": [
+                "--help"
+            ],
+            "required": false
+        }
+    }
 }

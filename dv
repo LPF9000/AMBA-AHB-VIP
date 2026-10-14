@@ -2,17 +2,30 @@
 set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-dvflow_root=${DVFLOW_ROOT:-"$repo_root/../TRNG-research"}
+dvflow_root=${DVFLOW_ROOT:-"$repo_root/tools/dv"}
 dvflow_project=${DVFLOW_PROJECT_ROOT:-"$repo_root"}
 export DVFLOW_ROOT="$dvflow_root"
 export DVFLOW_PROJECT_ROOT="$dvflow_project"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$repo_root/.toolchain/uv-cache}"
 # Keep generated Verilator/C++ artifacts under this consuming project.  The
 # workstation's default ccache may be read-only in managed environments.
 export CCACHE_DISABLE="${CCACHE_DISABLE:-1}"
 mkdir -p "$dvflow_project/sim"
+if [ -z "${VERILATOR_SOLVER:-}" ] && [ -x "$repo_root/.venv/bin/z3" ]; then
+    export VERILATOR_SOLVER="$repo_root/.venv/bin/z3 -in -smt2"
+fi
 
-if [ "${1:-}" = "sim" ]; then
+needs_tool_check=1
+for argument in "$@"; do
+    case "$argument" in
+        --help|-h) needs_tool_check=0 ;;
+    esac
+done
+if [ "${1:-}" = "sim" ] && [ "$needs_tool_check" -eq 1 ]; then
     verilator_bin=${DVFLOW_VERILATOR_BIN:-}
+    if [ -z "$verilator_bin" ] && [ -x "$repo_root/.toolchain/verilator-5.052/bin/verilator" ]; then
+        verilator_bin="$repo_root/.toolchain/verilator-5.052/bin/verilator"
+    fi
     if [ -z "$verilator_bin" ]; then
         verilator_bin=$(command -v verilator || true)
     fi
@@ -26,13 +39,20 @@ if [ "${1:-}" = "sim" ]; then
         echo "hint: install/update the local OSS CAD Suite or set DVFLOW_VERILATOR_BIN" >&2
         exit 2
     fi
+    export PATH="$(dirname -- "$verilator_bin"):$PATH"
 fi
 
 if command -v uv >/dev/null 2>&1; then
-    exec uv run --project "$dvflow_root/tools/dv" --locked dvflow "$@"
+    if [ "$dvflow_root" = "$repo_root/tools/dv" ]; then
+        exec uv run --project "$repo_root" --locked dvflow "$@"
+    fi
+    exec uv run --project "$dvflow_root" --locked dvflow "$@"
 fi
-if [ -x "$dvflow_root/tools/dv/.venv/bin/dvflow" ]; then
-    exec "$dvflow_root/tools/dv/.venv/bin/dvflow" "$@"
+if [ -x "$repo_root/.venv/bin/dvflow" ] && [ "$dvflow_root" = "$repo_root/tools/dv" ]; then
+    exec "$repo_root/.venv/bin/dvflow" "$@"
 fi
-echo "error: local DVFlow checkout not found; set DVFLOW_ROOT or install uv" >&2
+if [ -x "$dvflow_root/.venv/bin/dvflow" ]; then
+    exec "$dvflow_root/.venv/bin/dvflow" "$@"
+fi
+echo "error: initialize tools/dv and run uv sync, or set DVFLOW_ROOT to a DVFlow checkout" >&2
 exit 127

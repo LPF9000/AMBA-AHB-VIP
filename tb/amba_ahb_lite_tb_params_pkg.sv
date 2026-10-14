@@ -1,0 +1,45 @@
+package amba_ahb_lite_tb_params_pkg;
+    timeunit 1ns;
+    timeprecision 1ps;
+    import amba_ahb_params_pkg::*;
+
+    // Named self-test fixtures, separate from normative protocol definitions.
+    parameter ahb_addr_t tb_base_addr = ahb_addr_t'('h100);
+    parameter ahb_addr_t tb_burst_addr = ahb_addr_t'('h200);
+    parameter ahb_addr_t tb_smoke_addr = ahb_addr_t'('h1000);
+    parameter ahb_data_t tb_transfer_data = ahb_data_t'('h1234_abcd);
+    parameter ahb_data_t tb_second_data = ahb_data_t'('h5566_7788);
+    parameter ahb_data_t tb_retained_data = ahb_data_t'('h2468_1357);
+    parameter ahb_data_t tb_abort_data = ahb_data_t'('hdead_beef);
+    parameter ahb_data_t tb_lane_data = ahb_data_t'('h4433_2211);
+    parameter ahb_data_t tb_byte_data = ahb_data_t'('ha0);
+    parameter ahb_data_t tb_halfword_data = ahb_data_t'('hbe00);
+    parameter ahb_data_t tb_burst_data = ahb_data_t'('h1000);
+    parameter ahb_data_t tb_serial_data = ahb_data_t'('h9000);
+    parameter ahb_data_t tb_copy_data = ahb_data_t'('h1234);
+    parameter ahb_data_t tb_mismatch_data = ahb_data_t'('h4321);
+    parameter ahb_data_t tb_bad_data = ahb_data_t'('hbad);
+    parameter ahb_addr_t tb_mutated_addr = ahb_addr_t'('hdead);
+    parameter ahb_data_t tb_smoke_data = ahb_data_t'('h1234_5678);
+    parameter ahb_data_t tb_timing_data = ahb_data_t'('hdead_beef);
+    parameter logic [3:0] tb_burst_prot = 4'b1011;
+    parameter logic [3:0] tb_bad_prot = 4'b1000;
+    parameter int unsigned tb_random_transfers = 200;
+    parameter int unsigned tb_random_addr_span = 128;
+    parameter int unsigned tb_incr_beats = 5;
+    parameter int unsigned tb_pipeline_transfers = 6;
+    parameter int unsigned tb_idle_requests = 3;
+    parameter int unsigned tb_timeout_limit = 4;
+    parameter int unsigned tb_smoke_timeout_limit = 8;
+    parameter int unsigned tb_default_waits = 2;
+    parameter int unsigned tb_random_wait_limit = 4;
+    parameter int unsigned tb_reset_waits = 4;
+    parameter int unsigned tb_timeout_waits = 12;
+    parameter int unsigned tb_long_waits = 20;
+    parameter int unsigned tb_global_waits = 3;
+    parameter int unsigned tb_reset_cycles = 2;
+    parameter time tb_clock_period = 10ns;
+    parameter time tb_watchdog = 1ms;
+    parameter time tb_reset_release_delay = 1ns;
+    parameter time tb_reset_assert_delay = 2ns;
+endpackage : amba_ahb_lite_tb_params_pkg

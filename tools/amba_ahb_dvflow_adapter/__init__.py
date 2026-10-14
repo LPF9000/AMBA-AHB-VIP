@@ -1,4 +1,4 @@
-"""Minimal adapter for the external TRNG-research DVFlow checkout.
+"""AHB project policy for the pinned shared DVFlow submodule.
 
 DVFlow remains an external tool dependency.  This adapter only declares the
 AHB filelist and does not copy or vendor the DVFlow implementation.
@@ -11,6 +11,9 @@ class DvFlowProjectAdapter(ProjectAdapter):
     """AHB VIP project policy layered over generic DVFlow commands."""
 
     adapter_id = "amba-ahb-vip"
+
+    def regression_plan_name(self) -> str:
+        return "manifests/regression.json"
 
     def gate_sim_default_tool(self) -> str:
         return "verilator"

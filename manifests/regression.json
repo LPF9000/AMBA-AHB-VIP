@@ -1,0 +1,58 @@
+{
+    "schema_version": 1,
+    "tests": [
+        "amba_ahb_lite_topology_test",
+        "amba_ahb_lite_active_smoke_test",
+        "amba_ahb_lite_wait_smoke_test",
+        "amba_ahb_lite_response_late_test",
+        "amba_ahb_lite_response_edge_test",
+        "amba_ahb_lite_error_smoke_test",
+        "amba_ahb_lite_reset_smoke_test",
+        "amba_ahb_lite_reset_read_test",
+        "amba_ahb_lite_reset_error_test",
+        "amba_ahb_lite_reset_retain_test",
+        "amba_ahb_lite_reset_repeat_test",
+        "amba_ahb_lite_reset_address_test",
+        "amba_ahb_lite_pipeline_test",
+        "amba_ahb_lite_pipeline_wait_test",
+        "amba_ahb_lite_lanes_test",
+        "amba_ahb_lite_slave_test",
+        "amba_ahb_lite_slave_wait_test",
+        "amba_ahb_lite_slave_script_test",
+        "amba_ahb_lite_global_ready_test",
+        "amba_ahb_lite_address_timeout_test",
+        "amba_ahb_lite_data_timeout_test",
+        "amba_ahb_lite_bursts_test",
+        "amba_ahb_lite_random_test",
+        "amba_ahb_lite_long_wait_test",
+        "amba_ahb_lite_checks_disabled_test",
+        "amba_ahb_lite_serial_bursts_test",
+        "amba_ahb_lite_slave_error_test",
+        "amba_ahb_lite_slave_reset_test",
+        "amba_ahb_lite_slave_lanes_test",
+        "amba_ahb_lite_slave_random_test",
+        "amba_ahb_lite_burst_error_test",
+        "amba_ahb_lite_reject_test",
+        "amba_ahb_lite_base_seq_test",
+        "amba_ahb_lite_idle_test",
+        "amba_ahb_lite_reuse_test"
+    ],
+    "seeds": [
+        1,
+        17,
+        29,
+        43
+    ],
+    "unit_tests": [
+        "amba_ahb_lite_negative_test",
+        "amba_ahb_lite_copy_test",
+        "amba_ahb_lite_config_test"
+    ],
+    "integration_tests": [
+        "amba_ahb_lite_active_smoke_test",
+        "amba_ahb_lite_wait_smoke_test",
+        "amba_ahb_lite_error_smoke_test",
+        "amba_ahb_lite_lanes_test",
+        "amba_ahb_lite_random_test"
+    ]
+}

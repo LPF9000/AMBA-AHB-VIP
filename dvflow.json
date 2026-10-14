@@ -15,19 +15,20 @@
         "benchmark_run_dir": "sim/benchmarks/runs",
         "synth_run_dir": "sim/synth/runs",
         "sim_dir": "sim",
-        "uvm_root": "$DVFLOW_ROOT/third_party/uvm-core",
+        "uvm_root": ".toolchain/uvm-core",
         "source_roots": [
             "src",
             "tb"
         ],
         "dv_include_dirs": [
             "src",
-            "tb"
+            "tb",
+            "checkers/src"
         ]
     },
     "defaults": {
-        "dv_top": "amba_ahb_lite_uvm_smoke",
+        "dv_top": "tb",
         "default_uvm_test": "amba_ahb_lite_topology_test",
-        "interface_top": "amba_ahb_lite_if"
+        "interface_top": "amba_ahb_if"
     }
 }
